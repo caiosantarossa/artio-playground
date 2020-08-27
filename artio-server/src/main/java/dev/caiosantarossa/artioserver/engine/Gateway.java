@@ -1,5 +1,6 @@
 package dev.caiosantarossa.artioserver.engine;
 
+import dev.caiosantarossa.artioserver.ThreadMonitor;
 import dev.caiosantarossa.artioserver.engine.auth.CustomAuthenticationStrategy;
 import dev.caiosantarossa.artioserver.library.MyLibrary;
 import io.aeron.archive.Archive;
@@ -45,6 +46,8 @@ public class Gateway {
                 .threadingMode(ArchiveThreadingMode.SHARED)
                 .deleteArchiveOnStart(true);
 
+        ThreadMonitor.startMonitor();
+
         LOGGER.info("Starting Gateway");
 
         try (ArchivingMediaDriver driver = ArchivingMediaDriver.launch(context, archiveContext);
@@ -53,7 +56,6 @@ public class Gateway {
             LOGGER.info("Gateway Started");
 
             runAgentUntilSignal(new MyLibrary());
-
         }
 
         System.exit(0);

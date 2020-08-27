@@ -1,7 +1,8 @@
 package dev.caiosantarossa.artioserver.library;
 
 import dev.caiosantarossa.artioserver.engine.Gateway;
-import dev.caiosantarossa.artioserver.library.handler.LibraryConnectHandler;
+import dev.caiosantarossa.artioserver.library.handler.SessionHandler;
+import dev.caiosantarossa.artioserver.library.session.LibrarySessions;
 import org.agrona.concurrent.Agent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,15 +26,19 @@ public class MyLibrary implements Agent {
     public void onStart() {
         final LibraryConfiguration configuration = new LibraryConfiguration();
 
+        final SessionHandler sessionHandler = new SessionHandler();
+
         configuration
-                .libraryConnectHandler(new LibraryConnectHandler())
-                .sessionAcquireHandler((session, acquiredInfo) -> new dev.caiosantarossa.artioserver.library.handler.SessionHandler(session))
-                .sessionExistsHandler(new AcquiringSessionExistsHandler(true))
+                .libraryConnectHandler(sessionHandler)
+                .sessionAcquireHandler(sessionHandler)
+                .sessionExistsHandler(new AcquiringSessionExistsHandler(false))
                 .libraryAeronChannels(singletonList(aeronChannel));
 
         library = FixLibrary.connect(configuration);
 
         LOGGER.info("Connecting library");
+
+        LibrarySessions.startMonitor();
     }
 
     @Override
