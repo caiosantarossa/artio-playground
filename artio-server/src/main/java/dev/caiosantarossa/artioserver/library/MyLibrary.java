@@ -1,7 +1,14 @@
 package dev.caiosantarossa.artioserver.library;
 
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.util.DaemonThreadFactory;
 import dev.caiosantarossa.artioserver.engine.Gateway;
 import dev.caiosantarossa.artioserver.library.handler.SessionHandler;
+import dev.caiosantarossa.artioserver.library.message.MessageEvent;
+import dev.caiosantarossa.artioserver.library.message.MessageEventFactory;
+import dev.caiosantarossa.artioserver.library.message.MessageEventHandler;
+import dev.caiosantarossa.artioserver.library.message.MessageEventProducerWithTranslator;
 import dev.caiosantarossa.artioserver.library.session.LibrarySessions;
 import org.agrona.concurrent.Agent;
 import org.apache.logging.log4j.LogManager;
@@ -24,9 +31,23 @@ public class MyLibrary implements Agent {
 
     @Override
     public void onStart() {
+
+        // Disruptor
+        MessageEventFactory factory = new MessageEventFactory();
+
+        int bufferSize = 1024;
+
+        Disruptor<MessageEvent> disruptor = new Disruptor(factory, bufferSize, DaemonThreadFactory.INSTANCE);
+        disruptor.handleEventsWith(new MessageEventHandler());
+        disruptor.start();
+
+        RingBuffer<MessageEvent> ringBuffer = disruptor.getRingBuffer();
+        MessageEventProducerWithTranslator producer = new MessageEventProducerWithTranslator(ringBuffer);
+
+        // Library
         final LibraryConfiguration configuration = new LibraryConfiguration();
 
-        final SessionHandler sessionHandler = new SessionHandler();
+        final SessionHandler sessionHandler = new SessionHandler(producer);
 
         configuration
                 .libraryConnectHandler(sessionHandler)

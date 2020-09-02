@@ -1,7 +1,7 @@
 package dev.caiosantarossa.artioserver.library.handler;
 
+import dev.caiosantarossa.artioserver.library.message.MessageEventProducerWithTranslator;
 import dev.caiosantarossa.artioserver.library.session.LibrarySessions;
-import dev.caiosantarossa.artioserver.library.task.SendMessageTask;
 import io.aeron.logbuffer.ControlledFragmentHandler;
 import org.agrona.DirectBuffer;
 import org.apache.logging.log4j.LogManager;
@@ -16,7 +16,7 @@ import uk.co.real_logic.artio.session.Session;
 import uk.co.real_logic.artio.util.AsciiBuffer;
 import uk.co.real_logic.artio.util.MutableAsciiBuffer;
 
-import java.util.Timer;
+import java.nio.ByteBuffer;
 
 import static io.aeron.logbuffer.ControlledFragmentHandler.Action.CONTINUE;
 
@@ -25,6 +25,12 @@ public class SessionHandler implements uk.co.real_logic.artio.library.SessionHan
     private static final Logger LOGGER = LogManager.getLogger(SessionHandler.class);
 
     private final AsciiBuffer string = new MutableAsciiBuffer();
+
+    private final MessageEventProducerWithTranslator producer;
+
+    public SessionHandler(MessageEventProducerWithTranslator producer) {
+        this.producer = producer;
+    }
 
     public ControlledFragmentHandler.Action onMessage(
             final DirectBuffer buffer,
@@ -78,9 +84,8 @@ public class SessionHandler implements uk.co.real_logic.artio.library.SessionHan
 
         LibrarySessions.addSession(session);
 
-        SendMessageTask sendMessageTask = new SendMessageTask(session.compositeKey().remoteCompId());
-        Timer t = new Timer();
-        t.schedule(sendMessageTask, 3000);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(session.compositeKey().remoteCompId().getBytes());
+        producer.onData(byteBuffer);
 
         return this;
     }
